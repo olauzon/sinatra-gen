@@ -1,6 +1,7 @@
 <%- if vendor -%>
 $:.unshift File.join(File.dirname(__FILE__), '..', 'vendor', 'sinatra', 'lib')
 <%- end -%>
+require 'rubygems'
 require 'sinatra'
 require 'rack/test'
 
