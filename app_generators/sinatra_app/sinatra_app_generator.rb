@@ -18,7 +18,8 @@ class SinatraAppGenerator < RubiGen::Base
 
   default_options :author => nil
 
-  attr_accessor :app_name, 
+  attr_accessor :app_name,
+                :app_file_name,
                 :vendor, 
                 :tiny, 
                 :git, 
@@ -35,6 +36,7 @@ class SinatraAppGenerator < RubiGen::Base
     usage if args.empty?
     @destination_root = File.expand_path(args.shift)
     self.app_name = base_name
+    self.app_file_name = app_name.gsub('-', '_')
     extract_options
     parse_actions(args)
   end
@@ -49,7 +51,7 @@ class SinatraAppGenerator < RubiGen::Base
       end      
 
       m.template 'config.ru.erb', 'config.ru'
-      m.template 'app.rb.erb'   , "#{app_name}.rb"
+      m.template 'app.rb.erb'   , "#{app_file_name}.rb"
       m.template 'Rakefile.erb' , 'Rakefile'
       
       test_dir = (tests_are_specs? ? 'spec' : 'test')
@@ -58,10 +60,10 @@ class SinatraAppGenerator < RubiGen::Base
         BASEDIRS.each { |path| m.directory path }
         m.directory test_dir
         m.file     'config.yml', 'config.yml'
-        m.template 'lib/module.rb.erb', "lib/#{app_name}.rb"
+        m.template 'lib/module.rb.erb', "lib/#{app_file_name}.rb"
         m.template 'test/test_helper.rb.erb', "#{test_dir}/#{test_dir}_helper.rb"
         m.template "test/test_app_#{test_framework}.rb.erb", 
-                   "#{test_dir}/#{(tests_are_specs? ? "#{app_name}_spec" : "test_#{app_name}")}.rb"
+                   "#{test_dir}/#{(tests_are_specs? ? "#{app_file_name}_spec" : "test_#{app_file_name}")}.rb"
         m.template "views/#{view_framework}_index.erb", "views/index.#{view_framework}"
         m.template "views/#{view_framework}_layout.erb", "views/layout.#{view_framework}" unless view_framework == 'builder'
       end
@@ -134,7 +136,7 @@ class SinatraAppGenerator < RubiGen::Base
   end
 
   def klass_name
-    app_name.classify
+    app_file_name.classify
   end
 
   def parse_actions(*action_args)

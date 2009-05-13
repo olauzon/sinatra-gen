@@ -11,7 +11,7 @@ Sinatra::Default.set(
   :logging => false
 )
 
-require File.join(File.dirname(__FILE__), '..', '<%= app_name %>.rb')
+require File.join(File.dirname(__FILE__), '..', '<%= app_file_name %>.rb')
 
 module TestHelper
   
