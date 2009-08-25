@@ -28,7 +28,9 @@ class SinatraAppGenerator < RubiGen::Base
                 :view_framework, 
                 :install_scripts, 
                 :cap, 
-                :actions
+                :actions,
+                :middleware,
+                :bin_name
 
   def initialize(runtime_args, runtime_options = {})
     super
@@ -49,7 +51,6 @@ class SinatraAppGenerator < RubiGen::Base
       end      
 
       m.template 'config.ru.erb', 'config.ru'
-      m.template 'app.rb.erb'   , "#{app_name}.rb"
       m.template 'Rakefile.erb' , 'Rakefile'
       
       test_dir = (tests_are_specs? ? 'spec' : 'test')
@@ -58,12 +59,19 @@ class SinatraAppGenerator < RubiGen::Base
         BASEDIRS.each { |path| m.directory path }
         m.directory test_dir
         m.file     'config.yml', 'config.yml'
-        m.template 'lib/module.rb.erb', "lib/#{app_name}.rb"
+        m.template 'lib/app.rb.erb', "lib/#{app_name}.rb"
         m.template 'test/test_helper.rb.erb', "#{test_dir}/#{test_dir}_helper.rb"
         m.template "test/test_app_#{test_framework}.rb.erb", 
                    "#{test_dir}/#{(tests_are_specs? ? "#{app_name}_spec" : "test_#{app_name}")}.rb"
         m.template "views/#{view_framework}_index.erb", "views/index.#{view_framework}"
         m.template "views/#{view_framework}_layout.erb", "views/layout.#{view_framework}" unless view_framework == 'builder'
+      else
+        m.template "lib/app.rb.erb", "#{app_name}.rb"
+      end
+
+      if options[:bin]
+        m.directory "bin"
+        m.template "bin/app.erb", "bin/#{bin_name}", {:chmod => 0755}
       end
 
       if vendor
@@ -98,7 +106,7 @@ class SinatraAppGenerator < RubiGen::Base
     <<-EOS
     Creates the skeleton for a new sinatra app
 
-    USAGE: #{spec.name} app_name [options] [paths]
+    USAGE: sinatra-gen app_name [options] [paths]
     EOS
   end
 
@@ -116,6 +124,8 @@ class SinatraAppGenerator < RubiGen::Base
     opts.on("--git /path/to/git", "Specify a different path for 'git'") {|o| options[:git] = o }
     opts.on("--test=test_framework", String, "Specify your testing framework (bacon (default)/rspec/spec/shoulda/test)") {|o| options[:test_framework] = o }
     opts.on("--views=view_framework", "Specify your view framework (haml (default)/erb/builder)")  {|o| options[:view_framework] = o }
+    opts.on("--middleware=rack-middleware", Array, "Specify Rack Middleware to be required and included (comma delimited)") {|o| options[:middleware] = o }
+    opts.on("--vegas=[bin_name]", "--bin=[bin_name]", "Create an executable bin using Vegas. Pass an optional bin_name") {|o| options[:bin] = true; options[:bin_name] = o }
   end
 
   def extract_options
@@ -131,10 +141,16 @@ class SinatraAppGenerator < RubiGen::Base
     self.test_framework  = options[:test_framework] || 'bacon'
     self.view_framework  = options[:view_framework] || 'haml'
     self.install_scripts = options[:scripts] || false
+    self.middleware      = options[:middleware] ? options[:middleware].reject {|m| m.blank? } : []
+    self.bin_name        = options[:bin_name] || app_name
   end
 
   def klass_name
     app_name.classify
+  end
+
+  def app_klass
+    tiny ? "Sinatra::Application" : klass_name
   end
 
   def parse_actions(*action_args)

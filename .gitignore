@@ -1,3 +1,5 @@
 tmp/*
 pkg*
 *.sw?
+_layouts
+_site
